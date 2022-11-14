@@ -6,9 +6,15 @@ import socket
 async def handle_client(reader, writer):
     while True:
         data = await reader.read(1024)
-        message = data.decode()
+        split_message = data.strip().split(b"\r\n")
         
-        writer.write(b"+PONG\r\n")
+        if split_message[2].lower() == b"ping":
+            writer.write(b"+PONG\r\n")
+        elif split_message[2].lower() == b"echo":
+            print(data)
+            print(split_message)
+            writer.write(b"+" + split_message[-1] + b"\r\n")
+
         await writer.drain()
 
 
