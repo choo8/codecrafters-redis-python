@@ -2,18 +2,31 @@
 import asyncio
 import socket
 
+redis_store = {}
 
 async def handle_client(reader, writer):
+    global redis_store
+
     while True:
         data = await reader.read(1024)
         split_message = data.strip().split(b"\r\n")
         
-        if split_message[2].lower() == b"ping":
+        cmd = split_message[2].lower()
+
+        if cmd == b"ping":
             writer.write(b"+PONG\r\n")
-        elif split_message[2].lower() == b"echo":
-            print(data)
-            print(split_message)
+        elif cmd == b"echo":
             writer.write(b"+" + split_message[-1] + b"\r\n")
+        elif cmd == b"set":
+            key, value = split_message[-3], split_message[-1]
+            redis_store[key] = value
+            writer.write(b"+OK\r\n")
+        elif cmd == b"get":
+            key = split_message[-1]
+            if key in redis_store:
+                writer.write(b"+" + redis_store[key] + b"\r\n")
+            else:
+                writer.write(b"+\r\n")
 
         await writer.drain()
 
